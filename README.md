@@ -3,10 +3,51 @@ This is the easy way for add support to app key and tokens access to your REST A
 
 # Install
 
-```
+```bash
 hostname$ npm install authtoken --save
 ```
+# Implement
+## Express.js
+This is a Express.js example
+```js
+var authtoken = require("authtoken");
+var app = require("express")();
+app.use(new authtoken.express());
+app.listen(1234);
+```
 
+## Hapi
+```js
+'use strict';
+
+const Hapi = require('hapi');
+const authtoken = require("../index");
+
+const server = new Hapi.Server();
+server.connection({
+    host: 'localhost',
+    port: 8000
+});
+
+
+server.register(authtoken.hapi,  (err) => {
+    if (err) {
+        console.error('Failed to load plugin:', err);
+    }
+});
+
+server.start((err) => {
+    if (err) {
+        throw err;
+    }
+    console.log('Server running at:', server.info.uri);
+});
+```
+
+## Debug
+```bash
+hostname$ node app.js DEBUG=authtoken*
+```
 # Config
 authtoken use config library. You can edit the config/default.json file or create you own config file and set a new NODE_ENV
  
@@ -16,12 +57,14 @@ Using the header "tokenservice" for run methods into library.
 
 ## login
 Require 2 headers, "apikey" and "secret".
+The system return the header "status". If login ok, status header is "logged", else "error".
 
 Example:
-```
+```js
+const https = require('https');
 var options = {
   hostname: 'www.website.com',
-  port: 443,
+  port: 80,
   path: '/',
   method: 'POST',
   headers: {
@@ -31,6 +74,19 @@ var options = {
   }
 };
 
+var req = https.request(options, (res) => {
+  console.log('statusCode: ', res.statusCode);
+  console.log('headers: ', res.headers);
+
+  res.on('data', (d) => {
+    process.stdout.write(d);
+  });
+});
+req.end();
+
+req.on('error', (e) => {
+  console.error(e);
+});
 ``` 
 
 

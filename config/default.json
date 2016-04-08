@@ -1,0 +1,9 @@
+{
+  "default":{
+    "mongodb": "authtoken",
+    "startupMessage": "AUTH SERVICE NOT READY!, RETURN IN FEW SECONDS!",
+    "redisConnection": "",
+    "collections": ["tokens", "keys"],
+    "refreshKeys": 10
+  }
+}

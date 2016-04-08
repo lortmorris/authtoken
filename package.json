@@ -1,0 +1,35 @@
+{
+  "name": "authtoken",
+  "version": "1.0.0",
+  "description": "Implement AUTH TOKEN in you REST API",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha ./test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lortmorris/apitoken.git"
+  },
+  "keywords": [
+    "rest",
+    "api",
+    "token",
+    "express",
+    "hapi"
+  ],
+  "author": "Cesar Casas <cesarcasas@bsdsolutions.com.ar> (https://ar.linkedin.com/in/cesarcasas)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lortmorris/apitoken/issues"
+  },
+  "homepage": "https://github.com/lortmorris/apitoken#readme",
+  "dependencies": {
+    "bluebird": "^3.3.4",
+    "config": "^1.19.0",
+    "debug": "^2.2.0",
+    "redis": "^2.5.3"
+  }
+}

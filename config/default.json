@@ -4,6 +4,7 @@
     "startupMessage": "AUTH SERVICE NOT READY!, RETURN IN FEW SECONDS!",
     "redisConnection": "",
     "collections": ["tokens", "keys"],
-    "refreshKeys": 10
+    "refreshKeys": 10,
+     "rateLimit": 100
   }
 }

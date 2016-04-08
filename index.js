@@ -5,8 +5,9 @@ const redis = require('redis');
 const bluebird = require("bluebird");
 const EventEmitter = require('events').EventEmitter;
 const utils = require('util');
-const config  = require("config")
-
+const config  = require("config");
+const shortid = require('shortid');
+const crypto = require('crypto');
 
 //own library
 const Keys = require("./lib/Keys");
@@ -37,13 +38,26 @@ function authtoken(server, options, next){
     self.collections = params.collections || ['tokens', 'keys'];
 
 
-    var context = {
-        mongodb: require("mongojs")(self.params.mongodb, self.collections)
+    self.context = {
+        mongodb: require("mongojs")(self.params.mongodb, self.collections),
+        redis: redis.createClient(self.params.redis)
     };
 
 
 
-    self.Keys = new Keys(context);
+    self.context.redis.on("error", function (err) {
+        debug("Redis.error " + err);
+    });
+
+    self.context.redis.on("connect", function () {
+        debug("Redis.connect ");
+    });
+
+
+
+
+
+    self.Keys = new Keys(self.context);
     self.ready = false;
     self.on('keysLoaded', ()=>{ self.ready = true; });
 
@@ -55,15 +69,15 @@ function authtoken(server, options, next){
                 self.emit('keysLoaded');
             })
             .catch((err)=>{
-                    debug("Reject Starting: "+err);
-                    self.params.startupMessage="AUTH Error: starting faild.";
-                });
+                debug("Reject Starting: "+err);
+                self.params.startupMessage="AUTH Error: starting faild.";
+            });
     }//end init
 
 
     self.interval = setInterval(()=>{
         self.loadKeys()
-        .catch(()=>{
+            .catch(()=>{
                 self.ready=false;
             });
     }, self.params.refreshKeys * 1000);
@@ -75,23 +89,27 @@ function authtoken(server, options, next){
         if(self.ready){
             if(req.headers.tokenservice && req.headers.tokenservice=="login") {
                 self.login(req.headers.apikey || "", req.headers.secret || "", res)
-                    .then(()=>{
-                        return;
-                    }).catch((err)=>{
+                    .then((secretToken)=>{
+                        res.set("secret-token", secretToken);
+                        self.send(res, "Login OK");
+                    })
+                    .catch((err)=>{
+                        debug("catch KLKTR43: "+err.toString());
                         return self.sendError(res, err);
                     })
             }else{
                 return self.check(req, res)
-                            .then(()=>{ next(); })
-                            .catch((err)=>{
-                                    self.sendError(err);
-                                })
-            }
+                    .then(()=>{
+                        next();
+                    })
+                    .catch((err)=>{
+                        debug("Catch Check: "+err.toString());
+                        self.sendError(res, err);
+                    });
+            }//end else
 
         }else{
-
-            res.end(self.params.startupMessage);
-            return;
+            return res.end(self.params.startupMessage);
         }//end else
 
     };
@@ -105,7 +123,15 @@ utils.inherits(authtoken, EventEmitter);
 
 
 authtoken.prototype.sendError = (res, err)=>{
-    res.json({Error: true, msg: err, timestamp: new Date().getTime()});
+    res.end(JSON.stringify({Error: true, msg: err, timestamp: new Date().getTime()}));
+};
+
+authtoken.prototype.send = (res, msg)=>{
+    res.end(JSON.stringify({Error: null, msg: msg, timestamp: new Date().getTime()}) );
+};
+
+authtoken.prototype.generateSecretToken = ()=>{
+    return crypto.randomBytes(20).toString('hex')+'-'+shortid.generate();
 };
 
 /**
@@ -114,14 +140,41 @@ authtoken.prototype.sendError = (res, err)=>{
  * @param {object} res - Response Object (transport method).
  * @returns {Promise}
  */
-authtoken.prototype.check = (req, res) => {
+authtoken.prototype.check = function(req, res) {
     var self = this;
-    res.set('AUTHREST', "ok");
 
     return new Promise((resolve, reject)=>{
 
-        resolve();
-    })
+        if(req.headers['secret-token']){
+            self.context.redis.hget(req.headers['secret-token'],"trq", (err,trq)=>{
+
+                if(err) return reject("Error RDS10020");
+
+                self.context.redis.hget(req.headers['secret-token'], "limit", (err, limit)=>{
+
+                    if(err) return reject("Error RDS10030");
+
+                    trq = parseInt(trq);
+                    trq++;
+
+
+                    if(trq==parseInt(limit)){
+                        reject("Too many request");
+                    }else{
+
+                        self.context.redis.hset(req.headers['secret-token'], "trq", trq, (err)=>{
+                            if(err) reject("Error TRQ29900");
+                            else resolve();
+                        });
+
+                    }//end else request limit
+
+                });
+            });
+
+        }else reject("Need 'secret-token' header");
+
+    });
 
 };
 
@@ -136,8 +189,24 @@ authtoken.prototype.check = (req, res) => {
 authtoken.prototype.login  = function (apikey, secret, res) {
 
     const self = this;
-    return new Promise((resolve, reject)=>{
+    debug("authtoken.login");
 
+    return new Promise((resolve, reject)=>{
+        self.context.redis.hget(apikey, "secret", (a, b)=>{
+            if(a) reject("Bad API Key");
+            else{
+                if(b===secret){
+                    var st = self.generateSecretToken();
+                    self.context.redis.hset(st, "trq", 0, ()=>{
+                        self.context.redis.hget(apikey, "ratelimit", (err, ratelimit)=>{
+                            self.context.redis.hset(st, "limit", ratelimit, ()=>{
+                                resolve(st);
+                            });//end set limit
+                        }); //end get ratelimit
+                    });//end set trq
+                }else reject("Bad Secret Token");
+            }//end else
+        })
     });
 };
 
@@ -151,18 +220,29 @@ authtoken.prototype.loadKeys = function(){
 
     debug("authtoken.loadKeys called");
 
+
     return new Promise((resolve, reject)=>{
         self.Keys.load()
             .then((keys)=>{
+                let total  = keys.length;
+
                 keys.forEach(function(a,b){
-                    console.log(a,b);
+
+                    ((a)=>{
+                        self.context.redis.hset(a.apikey, "secret", a.secret, ()=>{
+                            self.context.redis.hset(a.apikey,"ratelimit", a.ratelimit, ()=>{
+                                total--;
+                                if(total==0) resolve();
+
+                            });
+                        });
+
+                    })(a, total);
                 });
 
-                resolve();
-            }, reject);
-
+            }, reject)
     })
-    .catch((err)=>{
+        .catch((err)=>{
             debug("Catch: Error loadKeys: "+err.toString());
         });
 };
@@ -176,27 +256,27 @@ module.exports.express = authtoken;
  * @type {{register: Function}}
  */
 module.exports.hapi = {
-  register: function(server, options, next){
+    register: function(server, options, next){
 
-      var authtoken = new module.exports.express();
-      server.ext({
-          type: 'onRequest',
-          method: function (request, reply) {
+        var authtoken = new module.exports.express();
+        server.ext({
+            type: 'onRequest',
+            method: function (request, reply) {
 
-              var emul = {
-                  "set": function(k,v){
+                var emul = {
+                    "set": function(k,v){
                         reply().headers[k] = v;
-                  },
-                  "end": reply.response
-              };
+                    },
+                    "end": reply.response
+                };
 
-              return authtoken(request, emul, reply.continue);
+                return authtoken(request, emul, reply.continue);
 
-          }//end method
-      });
+            }//end method
+        });
 
-      next();
-  }
+        next();
+    }
 };
 
 module.exports.hapi.register.attributes ={

@@ -1,6 +1,6 @@
 {
   "name": "authtoken",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Implement AUTH TOKEN in you REST API",
   "main": "index.js",
   "directories": {

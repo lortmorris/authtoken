@@ -200,6 +200,7 @@ authtoken.prototype.login  = function (apikey, secret, res) {
                     self.context.redis.hset(st, "trq", 0, ()=>{
                         self.context.redis.hget(apikey, "ratelimit", (err, ratelimit)=>{
                             self.context.redis.hset(st, "limit", ratelimit, ()=>{
+                                self.context.redis.expire(st, 60*60);
                                 resolve(st);
                             });//end set limit
                         }); //end get ratelimit

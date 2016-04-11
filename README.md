@@ -1,4 +1,4 @@
-# authtoken
+# Authtoken
 This is the easy way for add support to app key and tokens access to your REST Applications.
 
 # Install
@@ -44,9 +44,21 @@ server.start((err) => {
 });
 ```
 
+## Create new API KEY.
+Default collection: "keys".
+Example field: 
+```js
+{
+    "_id" : ObjectId("5703e7392665bb1e424ba981"),
+    "apikey" : "abc789",
+    "secret" : "secretito", //secret token
+    "ratelimit" : 7 //rate limit
+}
+```
+
 ## Debug
 ```bash
-hostname$ node app.js DEBUG=authtoken*
+hostname$ DEBUG=authtoken* node app.js 
 ```
 # Config
 authtoken use config library. You can edit the config/default.json file or create you own config file and set a new NODE_ENV
@@ -89,5 +101,6 @@ req.on('error', (e) => {
 });
 ``` 
 
-
-## logout
+# TODO
+- Add logout
+- Add routes patterns

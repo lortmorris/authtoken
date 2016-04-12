@@ -10,10 +10,30 @@ hostname$ npm install authtoken --save
 ## Express.js
 This is a Express.js example
 ```js
-var authtoken = require("authtoken");
-var app = require("express")();
+/**
+ * AUTH Token test for Express.js
+ *
+ */
+
+
+const authtoken = require("../index");
+const app = require("express")();
+
 app.use(new authtoken.express());
-app.listen(1234);
+app.listen(8000);
+
+app.get("/services", (req, res, next)=>{
+    res.json({name: "REST API", "version":"1.0.0"});
+});
+
+app.get("/exa1", (req, res, next)=>{
+   res.json({name: "exa1", version: "1.0.0"});
+});
+
+app.get("/exa2", (req, res, next)=>{
+    res.json({name: "exa2", version: "1.0.0"});
+});
+
 ```
 
 ## Hapi
@@ -36,7 +56,35 @@ server.register(authtoken.hapi,  (err) => {
     }
 });
 
+server.route({
+    method: 'GET',
+    path: '/',
+    handler: function (request, reply) {
+        reply('Hello!');
+    }
+});
+
+
+server.route({
+    method: 'GET',
+    path: '/exa1',
+    handler: function (request, reply) {
+        reply('Hello exa1!');
+    }
+});
+
+server.route({
+    method: 'GET',
+    path: '/exa2',
+    handler: function (request, reply) {
+        reply('Hello exa2!');
+    }
+});
+
+
+
 server.start((err) => {
+
     if (err) {
         throw err;
     }

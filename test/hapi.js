@@ -16,6 +16,31 @@ server.register(authtoken.hapi,  (err) => {
     }
 });
 
+server.route({
+    method: 'GET',
+    path: '/',
+    handler: function (request, reply) {
+        reply('Hello!');
+    }
+});
+
+
+server.route({
+    method: 'GET',
+    path: '/exa1',
+    handler: function (request, reply) {
+        reply('Hello exa1!');
+    }
+});
+
+server.route({
+    method: 'GET',
+    path: '/exa2',
+    handler: function (request, reply) {
+        reply('Hello exa2!');
+    }
+});
+
 
 
 server.start((err) => {

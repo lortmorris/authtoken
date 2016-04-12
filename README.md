@@ -62,7 +62,20 @@ hostname$ DEBUG=authtoken* node app.js
 ```
 # Config
 authtoken use config library. You can edit the config/default.json file or create you own config file and set a new NODE_ENV
- 
+
+## Config vars
+```js
+{
+    "mongodb": "authtoken", //mongodb url connection
+    "startupMessage": "AUTH SERVICE NOT READY!, RETURN IN FEW SECONDS!",//msg error
+    "redisConnection": "",//redis url connection
+    "collections": ["tokens", "keys"], //collectiosn for tokens and keys
+    "refreshKeys": 10, //second refresh key
+    "rateLimit": 100, //default rate limit
+    "base": "/services", //base api url
+    "excludes":["/exa1", "/exa2"] //exclude directories
+  }
+```
 # Methods
 
 Using the header "tokenservice" for run methods into library.

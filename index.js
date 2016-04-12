@@ -2,7 +2,6 @@
 
 const debug = require("./fdebug")("authtoken:main");
 const redis = require('redis');
-const bluebird = require("bluebird");
 const EventEmitter = require('events').EventEmitter;
 const utils = require('util');
 const config  = require("config");
@@ -17,21 +16,20 @@ const Keys = require("./lib/Keys");
  * authtoken main function.
  * @returns {Function|*}
  */
-function authtoken(server, options, next){
+function authtoken(){
 
 
     const self = this;
     const params = config.get(process.env.NODE_ENV || "default");
-
-    bluebird.promisifyAll(redis.RedisClient.prototype);
-    bluebird.promisifyAll(redis.Multi.prototype);
 
 
     self.params = {
         mongodb: params.mongodb  || "authtoken",
         startupMessage: params.startupMessage || "Waiting for AUTH Service...",
         redis: params.redisConnection || "",
-        refreshKeys: params.refreshKeys || 60
+        refreshKeys: params.refreshKeys || 60,
+        base : params.base || "/",
+        excludes: [].concat(params.excludes) || []
     };
 
 
@@ -84,33 +82,43 @@ function authtoken(server, options, next){
 
     init();
 
-    self.mws = function (req, res, next){
+    self.mws = function (req, res, next, who){
 
-        if(self.ready){
-            if(req.headers.tokenservice && req.headers.tokenservice=="login") {
-                self.login(req.headers.apikey || "", req.headers.secret || "", res)
-                    .then((secretToken)=>{
-                        res.set("secret-token", secretToken);
-                        self.send(res, "Login OK");
-                    })
-                    .catch((err)=>{
-                        debug("catch KLKTR43: "+err.toString());
-                        return self.sendError(res, err);
-                    })
-            }else{
-                return self.check(req, res)
-                    .then(()=>{
-                        next();
-                    })
-                    .catch((err)=>{
-                        debug("Catch Check: "+err.toString());
-                        self.sendError(res, err);
-                    });
-            }//end else
+        var who = who || "express";
+        return new Promise((resolve, reject)=>{
 
-        }else{
-            return res.end(self.params.startupMessage);
-        }//end else
+
+                if(self.ready){
+
+                    if(req.headers.tokenservice && req.headers.tokenservice=="login") {
+                        self.login(req.headers.apikey || "", req.headers.secret || "", res)
+                            .then((secretToken)=>{
+                                res.set("secret-token", secretToken);
+                                self.send(res, "Login OK");
+                            })
+                            .catch((err)=>{
+                                debug("catch KLKTR43: "+err.toString());
+                                return self.sendError(res, err);
+                            })
+                    }else{
+                        self.check(req, res)
+                            .then((razon)=>{
+                                debug("pass, next callend: "+razon);
+                                if(who=="express") next();
+                                else resolve(razon);
+
+                            })
+                            .catch((err)=>{
+                                debug("Catch Check: "+err.toString());
+                                self.sendError(res, err);
+                                reject();
+                            });
+                    }//end else
+
+                }else{
+                    return res.end(self.params.startupMessage);
+                }//end else
+        });
 
     };
 
@@ -143,9 +151,24 @@ authtoken.prototype.generateSecretToken = ()=>{
 authtoken.prototype.check = function(req, res) {
     var self = this;
 
+    var path =   req.path || req.url.pathname;
+
+
+
     return new Promise((resolve, reject)=>{
 
-        if(req.headers['secret-token']){
+        if(self.params.base=="/") resolve("basepath /");
+
+        else if(path.indexOf(self.params.base)==0){
+            resolve("basepath inside");
+        }else if(()=>{
+                var r= false;
+                self.params.excludes.forEach((v)=>{ if(path.indexOf(v)==0) r=true; });
+                return r;
+            }() ) resolve("inside excludes");
+
+        else if(req.headers['secret-token']){
+
             self.context.redis.hget(req.headers['secret-token'],"trq", (err,trq)=>{
 
                 if(err) return reject("Error RDS10020");
@@ -169,8 +192,8 @@ authtoken.prototype.check = function(req, res) {
 
                     }//end else request limit
 
-                });
-            });
+                }); //end hget
+            });//end hget
 
         }else reject("Need 'secret-token' header");
 
@@ -250,6 +273,7 @@ authtoken.prototype.loadKeys = function(){
 
 
 
+
 module.exports.express = authtoken;
 
 /**
@@ -263,21 +287,36 @@ module.exports.hapi = {
         server.ext({
             type: 'onRequest',
             method: function (request, reply) {
+                var response = null;
 
                 var emul = {
                     "set": function(k,v){
-                        reply().headers[k] = v;
+                        debug("emul.set called: "+k+" "+v);
+                        if(!response) reply().header(v, k).hold();
+                        else { response.headers[k] = v; }
                     },
-                    "end": reply.response
+                    "end": (buff)=>{
+                        debug("emul.end called: "+buff);
+                        if(!response) response= reply().header("authtoken", "error").hold();
+                        response.source = buff;
+                        response.send();
+                    }
                 };
 
-                return authtoken(request, emul, reply.continue);
+
+                authtoken(request, emul, reply.continue, "hapi")
+                .then((razon)=>{
+                        debug("final hapy: "+razon)
+                        reply.continue();
+                    })
+
+
 
             }//end method
         });
 
         next();
-    }
+    }//end register
 };
 
 module.exports.hapi.register.attributes ={

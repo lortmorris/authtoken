@@ -5,6 +5,8 @@
     "redisConnection": "",
     "collections": ["tokens", "keys"],
     "refreshKeys": 10,
-     "rateLimit": 100
+    "rateLimit": 100,
+    "base": "/services",
+    "excludes":["/exa1", "/exa2"]
   }
 }

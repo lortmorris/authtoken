@@ -1,6 +1,6 @@
 {
   "name": "authtoken",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Implement AUTH TOKEN in you REST API",
   "main": "index.js",
   "directories": {
@@ -27,7 +27,6 @@
   },
   "homepage": "https://github.com/lortmorris/apitoken#readme",
   "dependencies": {
-    "bluebird": "^3.3.4",
     "config": "^1.19.0",
     "debug": "^2.2.0",
     "redis": "^2.5.3",

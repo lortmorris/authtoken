@@ -7,6 +7,12 @@ This is the easy way for add support to app key and tokens access to your REST A
 hostname$ npm install authtoken --save
 ```
 # Implement
+You need Redis and MongoDB installed.
+
+```bash
+$ npm install redis-server mongodb
+```
+
 ## Express.js
 This is a Express.js example
 ```js
@@ -16,7 +22,7 @@ This is a Express.js example
  */
 
 
-const authtoken = require("../index");
+const authtoken = require("authtoken");
 const app = require("express")();
 
 app.use(new authtoken.express());
@@ -41,7 +47,7 @@ app.get("/exa2", (req, res, next)=>{
 'use strict';
 
 const Hapi = require('hapi');
-const authtoken = require("../index");
+const authtoken = require("authtoken");
 
 const server = new Hapi.Server();
 server.connection({

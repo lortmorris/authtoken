@@ -23,6 +23,8 @@ function authtoken(){
     const params = config.get(process.env.NODE_ENV || "default");
 
 
+    self.who = "express";
+
     self.params = {
         mongodb: params.mongodb  || "authtoken",
         startupMessage: params.startupMessage || "Waiting for AUTH Service...",
@@ -82,15 +84,15 @@ function authtoken(){
 
     init();
 
-    self.mws = function (req, res, next, who){
+    self.mws = function (req, res, next){
 
-        var who = who || "express";
+        debug("do request: ", req.path);
+        var who = self.show;
+
         return new Promise((resolve, reject)=>{
-
-
             if(self.ready){
-
                 if(req.headers.tokenservice && req.headers.tokenservice=="login") {
+                    debug("login");
                     self.login(req.headers.apikey || "", req.headers.secret || "", res)
                         .then((secretToken)=>{
                             res.set("secret-token", secretToken);
@@ -287,6 +289,7 @@ module.exports.hapi = {
     register: function(server, options, next){
 
         var authtoken = new module.exports.express();
+        authtoken.who = "hapi";
         server.ext({
             type: 'onRequest',
             method: function (request, reply) {
@@ -295,7 +298,7 @@ module.exports.hapi = {
                 var emul = {
                     "set": function(k,v){
                         debug("emul.set called: "+k+" "+v);
-                        if(!response) reply().header(v, k).hold();
+                        if(!response) response = reply().header(k, v).hold();
                         else { response.headers[k] = v; }
                     },
                     "end": (buff)=>{
@@ -307,7 +310,7 @@ module.exports.hapi = {
                 };
 
 
-                authtoken(request, emul, reply.continue, "hapi")
+                authtoken(request, emul, reply.continue)
                     .then((razon)=>{
                         debug("final hapy: "+razon)
                         reply.continue();

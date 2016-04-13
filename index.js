@@ -88,36 +88,36 @@ function authtoken(){
         return new Promise((resolve, reject)=>{
 
 
-                if(self.ready){
+            if(self.ready){
 
-                    if(req.headers.tokenservice && req.headers.tokenservice=="login") {
-                        self.login(req.headers.apikey || "", req.headers.secret || "", res)
-                            .then((secretToken)=>{
-                                res.set("secret-token", secretToken);
-                                self.send(res, "Login OK");
-                            })
-                            .catch((err)=>{
-                                debug("catch KLKTR43: "+err.toString());
-                                return self.sendError(res, err);
-                            })
-                    }else{
-                        self.check(req, res)
-                            .then((razon)=>{
-                                debug("pass, next callend: "+razon);
-                                if(who=="express") next();
-                                else resolve(razon);
-
-                            })
-                            .catch((err)=>{
-                                debug("Catch Check: "+err.toString());
-                                self.sendError(res, err);
-                                reject();
-                            });
-                    }//end else
-
+                if(req.headers.tokenservice && req.headers.tokenservice=="login") {
+                    self.login(req.headers.apikey || "", req.headers.secret || "", res)
+                        .then((secretToken)=>{
+                            res.set("secret-token", secretToken);
+                            self.send(res, "Login OK");
+                        })
+                        .catch((err)=>{
+                            debug("catch KLKTR43: "+err.toString());
+                            return self.sendError(res, err);
+                        })
                 }else{
-                    return res.end(self.params.startupMessage);
+                    self.check(req, res)
+                        .then((razon)=>{
+                            debug("pass, next callend: "+razon);
+                            if(who=="express") next();
+                            else resolve(razon);
+
+                        })
+                        .catch((err)=>{
+                            debug("Catch Check: "+err.toString());
+                            self.sendError(res, err);
+                            reject();
+                        });
                 }//end else
+
+            }else{
+                return res.end(self.params.startupMessage);
+            }//end else
         });
 
     };
@@ -157,45 +157,48 @@ authtoken.prototype.check = function(req, res) {
 
     return new Promise((resolve, reject)=>{
 
-        if(self.params.base=="/") resolve("basepath /");
+        if(path.indexOf(self.params.base)!=0){
+            resolve("basepath not inside");
+        }else {
 
-        else if(path.indexOf(self.params.base)==0){
-            resolve("basepath inside");
-        }else if(()=>{
-                var r= false;
-                self.params.excludes.forEach((v)=>{ if(path.indexOf(v)==0) r=true; });
-                return r;
-            }() ) resolve("inside excludes");
+            if ( ()=> {
+                    var r = false;
+                    self.params.excludes.forEach((v)=> {
+                        if (path.indexOf(v) == 0) r = true;
+                    });
+                    return r;
+                }() ) resolve("inside excludes");
 
-        else if(req.headers['secret-token']){
+        else if (req.headers['secret-token']) {
 
-            self.context.redis.hget(req.headers['secret-token'],"trq", (err,trq)=>{
+                self.context.redis.hget(req.headers['secret-token'], "trq", (err, trq)=> {
 
-                if(err) return reject("Error RDS10020");
+                    if (err) return reject("Error RDS10020");
 
-                self.context.redis.hget(req.headers['secret-token'], "limit", (err, limit)=>{
+                    self.context.redis.hget(req.headers['secret-token'], "limit", (err, limit)=> {
 
-                    if(err) return reject("Error RDS10030");
+                        if (err) return reject("Error RDS10030");
 
-                    trq = parseInt(trq);
-                    trq++;
+                        trq = parseInt(trq);
+                        trq++;
 
 
-                    if(trq==parseInt(limit)){
-                        reject("Too many request");
-                    }else{
+                        if (trq == parseInt(limit)) {
+                            reject("Too many request");
+                        } else {
 
-                        self.context.redis.hset(req.headers['secret-token'], "trq", trq, (err)=>{
-                            if(err) reject("Error TRQ29900");
-                            else resolve();
-                        });
+                            self.context.redis.hset(req.headers['secret-token'], "trq", trq, (err)=> {
+                                if (err) reject("Error TRQ29900");
+                                else resolve();
+                            });
 
-                    }//end else request limit
+                        }//end else request limit
 
-                }); //end hget
-            });//end hget
+                    }); //end hget
+                });//end hget
 
-        }else reject("Need 'secret-token' header");
+            } else reject("Need 'secret-token' header");
+        }
 
     });
 
@@ -305,7 +308,7 @@ module.exports.hapi = {
 
 
                 authtoken(request, emul, reply.continue, "hapi")
-                .then((razon)=>{
+                    .then((razon)=>{
                         debug("final hapy: "+razon)
                         reply.continue();
                     })

@@ -31,7 +31,9 @@ function authtoken(){
         redis: params.redisConnection || "",
         refreshKeys: params.refreshKeys || 60,
         base : params.base || "/",
-        excludes: [].concat(params.excludes) || []
+        excludes: [].concat(params.excludes) || [],
+        forcelogin: params.forcelogin || false
+
     };
 
 
@@ -87,7 +89,6 @@ function authtoken(){
     self.mws = function (req, res, next){
 
         debug("do request: ", req.path);
-        var who = self.show;
 
         return new Promise((resolve, reject)=>{
             if(self.ready){
@@ -105,9 +106,12 @@ function authtoken(){
                 }else{
                     self.check(req, res)
                         .then((razon)=>{
-                            debug("pass, next callend: "+razon);
-                            if(who=="express") next();
-                            else resolve(razon);
+                            debug("pass, next called: "+razon);
+                            if(self.who=="express") {
+                                next();
+                                resolve();
+                            }
+                            else { resolve(razon); }
 
                         })
                         .catch((err)=>{
@@ -144,6 +148,9 @@ authtoken.prototype.generateSecretToken = ()=>{
     return crypto.randomBytes(20).toString('hex')+'-'+shortid.generate();
 };
 
+
+
+
 /**
  * Check if request has auth or not.
  * @param {object} req - The Request object
@@ -157,52 +164,72 @@ authtoken.prototype.check = function(req, res) {
 
 
 
-    return new Promise((resolve, reject)=>{
 
-        if(path.indexOf(self.params.base)!=0){
-            resolve("basepath not inside");
-        }else {
+        return new Promise((resolve, reject)=>{
 
+
+            //check basepath
+            if(path.indexOf(self.params.base)!=0){
+                resolve("basepath not inside");
+                return;
+            }
+
+            //check excludes
             if ( ()=> {
                     var r = false;
                     self.params.excludes.forEach((v)=> {
                         if (path.indexOf(v) == 0) r = true;
                     });
                     return r;
-                }() ) resolve("inside excludes");
-
-        else if (req.headers['secret-token']) {
-
-                self.context.redis.hget(req.headers['secret-token'], "trq", (err, trq)=> {
-
-                    if (err) return reject("Error RDS10020");
-
-                    self.context.redis.hget(req.headers['secret-token'], "limit", (err, limit)=> {
-
-                        if (err) return reject("Error RDS10030");
-
-                        trq = parseInt(trq);
-                        trq++;
+                }() ) { resolve("inside excludes"); return; }
 
 
-                        if (trq == parseInt(limit)) {
-                            reject("Too many request");
-                        } else {
+            if(self.params.forcelogin && !req.headers['secret-token']) { reject("secret-token is required"); return; }
+            if(self.params.forcelogin==false && !req.headers['apikey']) { reject("apikey is required"); return; }
 
-                            self.context.redis.hset(req.headers['secret-token'], "trq", trq, (err)=> {
-                                if (err) reject("Error TRQ29900");
-                                else resolve();
-                            });
 
-                        }//end else request limit
+            if(self.params.forcelogin){
+                var key = req.headers['secret-token'];
+            }else{
+                var key = "_private-"+req.headers['apikey'];
+            }
 
-                    }); //end hget
-                });//end hget
 
-            } else reject("Need 'secret-token' header");
-        }
+            debug("current key: "+key);
+            self.context.redis.hget(key, "trq", (err, trq)=> {
 
-    });
+                if(trq==null) reject("Invalid Key o token");
+                else if (err) return reject("Error RDS10020");
+                else{
+                        debug("actual trq: "+trq);
+                        self.context.redis.hget(key, "limit", (err, limit)=> {
+
+                            if (err) return reject("Error RDS10030");
+
+                            trq = parseInt(trq);
+                            trq++;
+
+
+                            if (trq == parseInt(limit)) {
+                                reject("Too many request");
+                            } else {
+
+                                self.context.redis.hset(key, "trq", trq, (err)=> {
+                                    if (err) reject("Error TRQ29900");
+                                    else resolve();
+                                });
+
+                            }//end else request limit
+
+                        }); //end hget
+                }//end else
+            });//end hget
+
+
+
+
+        });
+
 
 };
 
@@ -260,8 +287,16 @@ authtoken.prototype.loadKeys = function(){
                     ((a)=>{
                         self.context.redis.hset(a.apikey, "secret", a.secret, ()=>{
                             self.context.redis.hset(a.apikey,"ratelimit", a.ratelimit, ()=>{
-                                total--;
-                                if(total==0) resolve();
+                                self.context.redis.hset('_private-'+a.apikey, "limit",a.ratelimit ,()=>{
+                                    self.context.redis.expire('_private-'+a.apikey, ()=>{
+                                        self.context.redis.hset('_private-'+a.apikey, "tqr", 0, ()=>{
+                                            total--;
+                                            if(total==0) resolve();
+                                        });
+
+                                    });
+
+                                });
 
                             });
                         });

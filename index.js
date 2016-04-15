@@ -291,7 +291,7 @@ authtoken.prototype.loadKeys = function(){
                             self.context.redis.hset(a.apikey,"ratelimit", a.ratelimit, ()=>{
                                 self.context.redis.hset('_private-'+a.apikey, "limit",a.ratelimit ,()=>{
                                     self.context.redis.expire('_private-'+a.apikey, ()=>{
-                                        self.context.redis.hset('_private-'+a.apikey, "tqr", 0, ()=>{
+                                        self.context.redis.hset('_private-'+a.apikey, "trq", 0, ()=>{
                                             total--;
                                             if(total==0) resolve();
                                         });

@@ -16,15 +16,14 @@ const Keys = require("./lib/Keys");
  * authtoken main function.
  * @returns {Function|*}
  */
-function authtoken(){
+function authtoken(who){
 
 
     const self = this;
     const params = config.get(process.env.NODE_ENV || "default");
 
 
-    self.who = "express";
-
+    self.who  = who || "express";
     self.params = {
         mongodb: params.mongodb  || "authtoken",
         startupMessage: params.startupMessage || "Waiting for AUTH Service...",
@@ -107,11 +106,14 @@ function authtoken(){
                     self.check(req, res)
                         .then((razon)=>{
                             debug("pass, next called: "+razon);
+                            debug("who: "+self.who);
                             if(self.who=="express") {
                                 next();
                                 resolve();
                             }
-                            else { resolve(razon); }
+                            else {
+                                resolve(razon);
+                            }
 
                         })
                         .catch((err)=>{
@@ -323,8 +325,8 @@ module.exports.express = authtoken;
 module.exports.hapi = {
     register: function(server, options, next){
 
-        var authtoken = new module.exports.express();
-        authtoken.who = "hapi";
+        var authtoken = new module.exports.express("hapi");
+
         server.ext({
             type: 'onRequest',
             method: function (request, reply) {

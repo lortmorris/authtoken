@@ -6,6 +6,7 @@ const utils = require('util');
 const config  = require("config");
 const shortid = require('shortid');
 const crypto = require('crypto');
+const sentinel = require('redis-sentinel');
 
 //own library
 const Keys = require("./lib/Keys");
@@ -93,7 +94,14 @@ authtoken.prototype.run = function(){
 
     self.context = {
         mongodb: require("mongojs")(self.params.mongodb, self.collections),
-        redis: redis.createClient(self.params.redis)
+        redis: (()=>{
+            if(Object.prototype.toString.call( self.params.redis) ){
+                return sentinel.createClient(self.params.redis, null, null);
+            }else{
+                return redis.createClient(self.params.redis);
+            }
+
+        })
     };
 
     self.context.redis.on("error", function (err) {
@@ -185,9 +193,7 @@ module.exports.hapi = {
                     .then((razon)=>{
                         debug("final hapy: "+razon)
                         reply.continue();
-                    })
-
-
+                    });
 
             }//end method
         });

@@ -18,23 +18,28 @@ module.exports = function(){
                 keys.forEach(function(a,b){
 
                     ((a)=>{
-                        self.context.redis.hset(a.apikey, "secret", a.secret, ()=>{
-                            self.context.redis.hset(a.apikey,"ratelimit", a.ratelimit, ()=>{
-                                self.context.redis.hset('_private-'+a.apikey, "limit",a.ratelimit ,()=>{
-                                    self.context.redis.expire('_private-'+a.apikey, ()=>{
-                                        self.context.redis.hset('_private-'+a.apikey, "trq", 0, ()=>{
-                                            total--;
-                                            if(total==0) resolve();
-                                        });
-
-                                    });
-
-                                });
-
-                            });
-                        });
-
+                        self.hset(a.apikey, "secret", a.secret)
+                            .then(()=>{
+                                return self.hset(a.apikey,"ratelimit", a.ratelimit);
+                            })
+                            .then(()=>{
+                                return self.hset('_private-'+a.apikey, "limit",a.ratelimit);
+                            })
+                            .then(()=>{
+                                return self.expire('_private-'+a.apikey, 60*60);
+                            })
+                            .then(()=>{
+                                return self.hset('_private-'+a.apikey, "trq", 0);
+                            })
+                            .then(()=>{
+                                total--;
+                                if(total==0) resolve();
+                            })
+                        .catch((err)=>{
+                                reject(err);
+                            })
                     })(a, total);
+
                 });
 
             }, reject)

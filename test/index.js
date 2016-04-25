@@ -39,10 +39,6 @@ function request (headers, url){
     });
 };
 
-
-
-
-
 describe("testing auth token", function(){
 
     this.timeout( 5 * 1000 );

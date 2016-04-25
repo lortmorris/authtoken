@@ -30,6 +30,7 @@
     "config": "^1.19.0",
     "debug": "^2.2.0",
     "redis": "^2.5.3",
+    "redis-sentinel": "^0.3.3",
     "shortid": "^2.2.6"
   }
 }

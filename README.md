@@ -124,6 +124,18 @@ authtoken use config library. You can edit the config/default.json file or creat
     "excludes":["/exa1", "/exa2"], //exclude directories
     "forcelogin": false //is true, all request require login, if false, onlye need api key in header
   }
+  
+### config redis
+you can use redis sentinel, just pass like argument a array with {host, port} properties.
+```js
+var endpoints = [
+    {host: '127.0.0.1', port: 26379},
+    {host: '127.0.0.1', port: 26380}
+];
+```
+  
+  
+  
 ```
 # Methods
 

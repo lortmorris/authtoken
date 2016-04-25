@@ -95,13 +95,13 @@ authtoken.prototype.run = function(){
     self.context = {
         mongodb: require("mongojs")(self.params.mongodb, self.collections),
         redis: (()=>{
-            if(Object.prototype.toString.call( self.params.redis) ){
+            if(Object.prototype.toString.call( self.params.redis) =="[object Array]"){
                 return sentinel.createClient(self.params.redis, null, null);
             }else{
                 return redis.createClient(self.params.redis);
             }
 
-        })
+        })()
     };
 
     self.context.redis.on("error", function (err) {

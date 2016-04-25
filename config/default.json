@@ -2,7 +2,7 @@
   "default":{
     "mongodb": "authtoken",
     "startupMessage": "AUTH SERVICE NOT READY!, RETURN IN FEW SECONDS!",
-    "redisConnection": "",
+    "redisConnection": "//127.0.0.1:6379",
     "collections": ["tokens", "keys"],
     "refreshKeys": 10,
     "rateLimit": 100,

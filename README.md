@@ -9,12 +9,8 @@ hostname$ npm install authtoken --save
 # Implement
 ## Express.js
 This is a Express.js example
-```js
-/**
- * AUTH Token test for Express.js
- *
- */
 
+```js
 
 const authtoken = require("../index");
 const app = require("express")();
@@ -37,6 +33,7 @@ app.get("/exa2", (req, res, next)=>{
 ```
 
 ## Hapi
+
 ```js
 'use strict';
 
@@ -124,19 +121,15 @@ authtoken use config library. You can edit the config/default.json file or creat
     "excludes":["/exa1", "/exa2"], //exclude directories
     "forcelogin": false //is true, all request require login, if false, onlye need api key in header
   }
+```
   
 ### config redis
 you can use redis sentinel, just pass like argument a array with {host, port} properties.
+
 ```js
-var endpoints = [
-    {host: '127.0.0.1', port: 26379},
-    {host: '127.0.0.1', port: 26380}
-];
-```
-  
-  
-  
-```
+"redisConnection": [{host: '127.0.0.1', port: 26379},{host: '127.0.0.1', port: 26380}];
+```  
+
 # Methods
 
 Using the header "tokenservice" for run methods into library.

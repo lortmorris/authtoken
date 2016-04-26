@@ -1,6 +1,7 @@
 # Authtoken
 This is the easy way for add support to app key and tokens access to your REST Applications.
 
+Powered by: César Casas [link](http://mailto:cesarcasas@bsdsolutions.com.ar "Cesar Casas") / [link](https://ar.linkedin.com/in/cesarcasas "Linkedin")
 # Install
 
 ```bash

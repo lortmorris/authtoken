@@ -23,13 +23,13 @@ module.exports =function(req, res) {
         }
 
         //check excludes
-        if ( ()=> {
+        if ( ( ()=> {
                 var r = false;
                 self.params.excludes.forEach((v)=> {
                     if (path.indexOf(v) == 0) r = true;
                 });
                 return r;
-            }() ) { resolve("inside excludes"); return; }
+            })() ) { resolve("inside excludes"); return; }
 
 
         if(self.params.forcelogin && !req.headers['secret-token']) { reject("secret-token is required"); return; }

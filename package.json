@@ -1,6 +1,6 @@
 {
   "name": "authtoken",
-  "version": "1.0.11",
+  "version": "1.0.14",
   "description": "Implement AUTH TOKEN in you REST API",
   "main": "index.js",
   "directories": {
@@ -29,6 +29,7 @@
   "dependencies": {
     "config": "^1.19.0",
     "debug": "^2.2.0",
+    "mongojs": "^2.4.0",
     "redis": "^2.5.3",
     "redis-sentinel": "^0.3.3",
     "shortid": "^2.2.6"

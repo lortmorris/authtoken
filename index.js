@@ -3,7 +3,7 @@
 const debug = require("./fdebug")("authtoken:main");
 const redis = require('redis');
 const utils = require('util');
-const config  = require("config");
+const config = require("config");
 const shortid = require('shortid');
 const crypto = require('crypto');
 const sentinel = require('redis-sentinel');
@@ -16,34 +16,34 @@ const Keys = require("./lib/Keys");
  * authtoken main function.
  * @returns {Function|*}
  */
-function authtoken(who){
-    this.who  = who || "express";
+function authtoken(who) {
+    this.who = who || "express";
     var self = this;
 
-    this.mws = function (req, res, next){
+    this.mws = function (req, res, next) {
 
         debug("do request: ", req.path);
 
 
-        return new Promise((resolve, reject)=>{
-            if(self.ready){
-                if(req.headers.tokenservice && req.headers.tokenservice=="login") {
+        return new Promise((resolve, reject)=> {
+            if (self.ready) {
+                if (req.headers.tokenservice && req.headers.tokenservice == "login") {
                     debug("login");
                     self.login(req.headers.apikey || "", req.headers.secret || "", res)
-                        .then((secretToken)=>{
+                        .then((secretToken)=> {
                             res.set("secret-token", secretToken);
                             self.send(res, "Login OK");
                         })
-                        .catch((err)=>{
-                            debug("catch KLKTR43: "+err.toString());
+                        .catch((err)=> {
+                            debug("catch KLKTR43: " + err.toString());
                             return self.sendError(res, err);
                         })
-                }else{
+                } else {
                     self.check(req, res)
-                        .then((razon)=>{
-                            debug("pass, next called: "+razon);
-                            debug("who: "+self.who);
-                            if(self.who=="express") {
+                        .then((razon)=> {
+                            debug("pass, next called: " + razon);
+                            debug("who: " + self.who);
+                            if (self.who == "express") {
                                 next();
                                 resolve();
                             }
@@ -52,14 +52,14 @@ function authtoken(who){
                             }
 
                         })
-                        .catch((err)=>{
-                            debug("Catch Check: "+err.toString());
+                        .catch((err)=> {
+                            debug("Catch Check: " + err.toString());
                             self.sendError(res, err);
                             reject();
                         });
                 }//end else
 
-            }else{
+            } else {
                 return res.end(self.params.startupMessage);
             }//end else
         });
@@ -72,17 +72,17 @@ function authtoken(who){
 require("./prototypes")(authtoken);
 
 
-authtoken.prototype.run = function(){
+authtoken.prototype.run = function () {
     const self = this;
     const params = config.get(process.env.NODE_ENV || "default");
 
 
     self.params = {
-        mongodb: params.mongodb  || "authtoken",
+        mongodb: params.mongodb || "authtoken",
         startupMessage: params.startupMessage || "Waiting for AUTH Service...",
         redis: params.redisConnection || "",
         refreshKeys: params.refreshKeys || 60,
-        base : params.base || "/",
+        base: params.base || "/",
         excludes: [].concat(params.excludes) || [],
         forcelogin: params.forcelogin || false
 
@@ -94,10 +94,10 @@ authtoken.prototype.run = function(){
 
     self.context = {
         mongodb: require("mongojs")(self.params.mongodb, self.collections),
-        redis: (()=>{
-            if(Object.prototype.toString.call( self.params.redis) =="[object Array]"){
+        redis: (()=> {
+            if (Object.prototype.toString.call(self.params.redis) == "[object Array]") {
                 return sentinel.createClient(self.params.redis, null, null);
-            }else{
+            } else {
                 return redis.createClient(self.params.redis);
             }
 
@@ -113,27 +113,26 @@ authtoken.prototype.run = function(){
     });
 
 
-
     self.Keys = new Keys(self.context);
     self.ready = false;
 
-    const init = ()=>{
+    const init = ()=> {
         self.loadKeys()
-            .then(()=>{
+            .then(()=> {
                 debug("Keys loaded");
                 self.ready = true;
             })
-            .catch((err)=>{
-                debug("Reject Starting: "+err);
-                self.params.startupMessage="AUTH Error: starting faild.";
+            .catch((err)=> {
+                debug("Reject Starting: " + err);
+                self.params.startupMessage = "AUTH Error: starting faild.";
             });
     }//end init
 
 
-    self.interval = setInterval(()=>{
+    self.interval = setInterval(()=> {
         self.loadKeys()
-            .catch(()=>{
-                self.ready=false;
+            .catch(()=> {
+                self.ready = false;
             });
     }, self.params.refreshKeys * 1000);
 
@@ -143,18 +142,16 @@ authtoken.prototype.run = function(){
 };
 
 
-
-
-authtoken.prototype.sendError = (res, err)=>{
+authtoken.prototype.sendError = (res, err)=> {
     res.end(JSON.stringify({Error: true, msg: err, timestamp: new Date().getTime()}));
 };
 
-authtoken.prototype.send = (res, msg)=>{
-    res.end(JSON.stringify({Error: null, msg: msg, timestamp: new Date().getTime()}) );
+authtoken.prototype.send = (res, msg)=> {
+    res.end(JSON.stringify({Error: null, msg: msg, timestamp: new Date().getTime()}));
 };
 
-authtoken.prototype.generateSecretToken = ()=>{
-    return crypto.randomBytes(20).toString('hex')+'-'+shortid.generate();
+authtoken.prototype.generateSecretToken = ()=> {
+    return crypto.randomBytes(20).toString('hex') + '-' + shortid.generate();
 };
 
 
@@ -165,7 +162,7 @@ module.exports.express = authtoken;
  * @type {{register: Function}}
  */
 module.exports.hapi = {
-    register: function(server, options, next){
+    register: function (server, options, next) {
 
         var authtoken = new module.exports.express("hapi");
 
@@ -175,14 +172,16 @@ module.exports.hapi = {
                 var response = null;
 
                 var emul = {
-                    "set": function(k,v){
-                        debug("emul.set called: "+k+" "+v);
-                        if(!response) response = reply().header(k, v).hold();
-                        else { response.headers[k] = v; }
+                    "set": function (k, v) {
+                        debug("emul.set called: " + k + " " + v);
+                        if (!response) response = reply().header(k, v).hold();
+                        else {
+                            response.headers[k] = v;
+                        }
                     },
-                    "end": (buff)=>{
-                        debug("emul.end called: "+buff);
-                        if(!response) response= reply().header("authtoken", "error").hold();
+                    "end": (buff)=> {
+                        debug("emul.end called: " + buff);
+                        if (!response) response = reply().header("authtoken", "error").hold();
                         response.source = buff;
                         response.send();
                     }
@@ -190,8 +189,8 @@ module.exports.hapi = {
 
 
                 authtoken(request, emul, reply.continue)
-                    .then((razon)=>{
-                        debug("final hapy: "+razon)
+                    .then((razon)=> {
+                        debug("final hapy: " + razon)
                         reply.continue();
                     });
 
@@ -202,6 +201,6 @@ module.exports.hapi = {
     }//end register
 };
 
-module.exports.hapi.register.attributes ={
+module.exports.hapi.register.attributes = {
     name: "AUTHToken"
 };

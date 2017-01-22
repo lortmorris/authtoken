@@ -18,12 +18,11 @@ const Keys = require("./lib/Keys");
  */
 function authtoken(who) {
     this.who = who || "express";
-    var self = this;
+    const self = this;
 
-    this.mws = function (req, res, next) {
+    this.mws =  (req, res, next) =>{
 
         debug("do request: ", req.path);
-
 
         return new Promise((resolve, reject)=> {
             if (self.ready) {
@@ -74,7 +73,7 @@ require("./prototypes")(authtoken);
 
 authtoken.prototype.run = function () {
     const self = this;
-    const params = config.get(process.env.NODE_ENV || "default");
+    const params = config.get(process.env.NODE_ENV || "authtoken");
 
 
     self.params = {

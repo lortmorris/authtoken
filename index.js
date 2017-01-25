@@ -73,7 +73,7 @@ require("./prototypes")(authtoken);
 
 authtoken.prototype.run = function () {
     const self = this;
-    const params = config.get(process.env.NODE_ENV || "authtoken");
+    const params = config.get("authtoken");
 
 
     self.params = {

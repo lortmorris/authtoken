@@ -1,90 +1,67 @@
-"use strict";
-
-var debug = require("debug")("authtoken:prototypes:check");
+const debug = require('debug')('authtoken:prototypes:check');
 
 /**
- * Check if request has auth or not.
- * @param {object} req - The Request object
- * @param {object} res - Response Object (transport method).
- * @returns {Promise}
- */
+* Check if request has auth or not.
+* @param {object} req - The Request object
+* @param {object} res - Response Object (transport method).
+* @returns {Promise}
+*/
 
-module.exports = function (req, res) {
-    var self = this;
-    var path = req.path || req.url.pathname;
+module.exports = function check(req) {
+  const path = req.path || req.url.pathname;
+  let key = '';
+  return new Promise((resolve, reject) => {
+    // check basepath
+    if (path.indexOf(this.params.base) !== 0) {
+      return resolve('basepath not inside');
+    }
+    // check excludes
+    if ((() => {
+      let r = false;
+      this.params.excludes.forEach((v) => {
+        if (path.indexOf(v) === 0) r = true;
+      });
+      return r;
+    })()) {
+      return resolve('inside excludes');
+    }
 
-    return new Promise((resolve, reject)=> {
+    if (this.params.forcelogin && !req.headers['secret-token']) {
+      return reject('secret-token is required');
+    }
 
+    if (this.params.forcelogin === false && !req.headers.apikey) {
+      return reject('apikey is required');
+    }
 
-        //check basepath
-        if (path.indexOf(self.params.base) != 0) {
-            resolve("basepath not inside");
-            return;
-        }
-
-        //check excludes
-        if ((()=> {
-                var r = false;
-                self.params.excludes.forEach((v)=> {
-                    if (path.indexOf(v) == 0) r = true;
-                });
-                return r;
-            })()) {
-            return resolve("inside excludes");
-
-        }
-
-
-        if (self.params.forcelogin && !req.headers['secret-token']) {
-            return reject("secret-token is required");
-
-        }
-        if (self.params.forcelogin == false && !req.headers['apikey']) {
-            return reject("apikey is required");
-        }
-
-
-        if (self.params.forcelogin) {
-            var key = req.headers['secret-token'];
-        } else {
-            var key = "_private-" + req.headers['apikey'];
-        }
+    if (this.params.forcelogin) {
+      key = req.headers['secret-token'];
+    } else {
+      key = `_private-${req.headers.apikey}`;
+    }
 
 
-        debug("current key: " + key);
+    debug('current key: ', key);
 
-        let trq, limit;
+    let trq = null;
+    let limit = null;
 
-        self.hget(key, "trq")
-            .then(($trq)=> {
-                if($trq==null) return reject("invalid API-Key");
-
-                trq = $trq;
-                debug("getting: " + JSON.stringify($trq));
-                trq = $trq;
-                return self.hget(key, "limit");
-            })
-            .then(($limit)=> {
-
-                limit = $limit == null ? 0 : limit;
-                trq = parseInt(trq);
-                trq++;
-
-                if (trq == parseInt(limit)) {
-                    reject("Too many request");
-                    return Promise.resolve();
-                } else {
-                    return self.hset(key, "trq", trq);
-                }
-
-            })
-            .then(()=> {
-                resolve();
-            })
-            .catch((err)=> {
-                reject(err);
-            });
-
-    });
-
+    this.hget(key, 'trq')
+      .then(($trq) => {
+        if ($trq === null) return reject('invalid API-Key');
+        trq = $trq;
+        debug('getting: ', JSON.stringify($trq));
+        trq = $trq;
+        return this.hget(key, 'limit');
+      })
+      .then(($limit) => {
+        limit = $limit == null ? 0 : limit;
+        trq = parseInt(trq, 10);
+        trq += 1;
+        if (trq === parseInt(limit, 10)) return reject('Too many request');
+        return this.hset(key, 'trq', trq);
+      })
+      .then(() => resolve())
+      .catch(err => reject(err));
+  });
 };

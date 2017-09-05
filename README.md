@@ -13,86 +13,23 @@ This is a Express.js example
 
 ```js
 
-const authtoken = require("../index");
-const app = require("express")();
+const authtoken = require('authtoken');
+const app = require('express')();
 
-app.use(new authtoken.express());
+app.use(new authtoken({
+  mongodb: dbInstance
+}));
 app.listen(8000);
 
-app.get("/services", (req, res, next)=>{
-    res.json({name: "REST API", "version":"1.0.0"});
-});
+app.get("/services", (req, res, next)=> res.json({ name: 'REST API', version: '1.0.0' }));
+app.get("/exa1", (req, res, next)=> res.json({ name: 'exa1', version: '1.0.0' }));
+app.get("/exa2", (req, res, next)=> res.json({ name: 'exa2', version: '1.0.0' }));
 
-app.get("/exa1", (req, res, next)=>{
-   res.json({name: "exa1", version: "1.0.0"});
-});
-
-app.get("/exa2", (req, res, next)=>{
-    res.json({name: "exa2", version: "1.0.0"});
-});
-
-```
-
-## Hapi
-
-```js
-'use strict';
-
-const Hapi = require('hapi');
-const authtoken = require("../index");
-
-const server = new Hapi.Server();
-server.connection({
-    host: 'localhost',
-    port: 8000
-});
-
-
-server.register(authtoken.hapi,  (err) => {
-    if (err) {
-        console.error('Failed to load plugin:', err);
-    }
-});
-
-server.route({
-    method: 'GET',
-    path: '/',
-    handler: function (request, reply) {
-        reply('Hello!');
-    }
-});
-
-
-server.route({
-    method: 'GET',
-    path: '/exa1',
-    handler: function (request, reply) {
-        reply('Hello exa1!');
-    }
-});
-
-server.route({
-    method: 'GET',
-    path: '/exa2',
-    handler: function (request, reply) {
-        reply('Hello exa2!');
-    }
-});
-
-
-
-server.start((err) => {
-
-    if (err) {
-        throw err;
-    }
-    console.log('Server running at:', server.info.uri);
-});
 ```
 
 ## Create new API KEY.
 Default collection: "keys".
-Example field: 
+Example field:
 ```js
 {
     "_id" : ObjectId("5703e7392665bb1e424ba981"),
@@ -104,26 +41,23 @@ Example field:
 
 ## Debug
 ```bash
-hostname$ DEBUG=authtoken* node app.js 
+hostname$ DEBUG=authtoken* node app.js
 ```
-# Config
-authtoken use config library. You can edit the config/default.json file or create you own config file and set a new NODE_ENV
-
-## Config vars
+# Settings
 ```js
 {
-    "mongodb": "authtoken", //mongodb url connection
-    "startupMessage": "AUTH SERVICE NOT READY!, RETURN IN FEW SECONDS!",//msg error
-    "redisConnection": "",//redis url connection
-    "collections": ["tokens", "keys"], //collectiosn for tokens and keys
-    "refreshKeys": 10, //second refresh key
-    "rateLimit": 100, //default rate limit
-    "base": "/services", //base api url
-    "excludes":["/exa1", "/exa2"], //exclude directories
-    "forcelogin": false //is true, all request require login, if false, onlye need api key in header
+    mongodb: 'authtoken', // mongodb url connection
+    startupMessage: 'AUTH SERVICE NOT READY!, RETURN IN FEW SECONDS!', // msg error
+    redisConnection: '',// redis url connection
+    collections: ['tokens', 'keys'], // collectiosn for tokens and keys
+    refreshKeys: 10, // second refresh key
+    rateLimit: 100, // default rate limit
+    base: '/services', // base api url
+    excludes:['/exa1', '/exa2'], // exclude directories
+    forcelogin: false // is true, all request require login, if false, onlye need api key in header
   }
 ```
-  
+
 ### config redis
 you can use redis sentinel, just pass like argument a array with {host, port} properties.
 
@@ -167,7 +101,7 @@ req.end();
 req.on('error', (e) => {
   console.error(e);
 });
-``` 
+```
 
 # TODO
 - Add logout

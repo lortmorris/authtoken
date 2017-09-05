@@ -1,205 +1,124 @@
-"use strict";
-
-const debug = require("./fdebug")("authtoken:main");
+const debug = require('./fdebug')('authtoken:main');
 const redis = require('redis');
-const utils = require('util');
-const config = require("config");
+const config = require('config');
 const shortid = require('shortid');
 const crypto = require('crypto');
 const sentinel = require('redis-sentinel');
-
-//own library
-const Keys = require("./lib/Keys");
-
+const mongojs = require('mongojs');
+const Keys = require('./lib/Keys');
 
 /**
- * authtoken main function.
- * @returns {Function|*}
- */
-function authtoken(who) {
-    this.who = who || "express";
-    const self = this;
+* authtoken main function.
+* @returns {Function|*}
+*/
+function authtoken(params = {}) {
+  this.mws = (req, res, next) => {
+    debug('do request: ', req.path);
 
-    this.mws =  (req, res, next) =>{
-
-        debug("do request: ", req.path);
-
-        return new Promise((resolve, reject)=> {
-            if (self.ready) {
-                if (req.headers.tokenservice && req.headers.tokenservice == "login") {
-                    debug("login");
-                    self.login(req.headers.apikey || "", req.headers.secret || "", res)
-                        .then((secretToken)=> {
-                            res.set("secret-token", secretToken);
-                            self.send(res, "Login OK");
-                        })
-                        .catch((err)=> {
-                            debug("catch KLKTR43: " + err.toString());
-                            return self.sendError(res, err);
-                        })
-                } else {
-                    self.check(req, res)
-                        .then((razon)=> {
-                            debug("pass, next called: " + razon);
-                            debug("who: " + self.who);
-                            if (self.who == "express") {
-                                next();
-                                resolve();
-                            }
-                            else {
-                                resolve(razon);
-                            }
-
-                        })
-                        .catch((err)=> {
-                            debug("Catch Check: " + err.toString());
-                            self.sendError(res, err);
-                            reject();
-                        });
-                }//end else
-
-            } else {
-                return res.end(self.params.startupMessage);
-            }//end else
-        });
-
-    };
-
-    return this.run();
-};
-
-require("./prototypes")(authtoken);
-
-
-authtoken.prototype.run = function () {
-    const self = this;
-    const params = config.get("authtoken");
-
-
-    self.params = {
-        mongodb: params.mongodb || "authtoken",
-        startupMessage: params.startupMessage || "Waiting for AUTH Service...",
-        redis: params.redisConnection || "",
-        refreshKeys: params.refreshKeys || 60,
-        base: params.base || "/",
-        excludes: [].concat(params.excludes) || [],
-        forcelogin: params.forcelogin || false
-
-    };
-
-
-    self.collections = params.collections || ['tokens', 'keys'];
-
-
-    self.context = {
-        mongodb: require("mongojs")(self.params.mongodb, self.collections),
-        redis: (()=> {
-            if (Object.prototype.toString.call(self.params.redis) == "[object Array]") {
-                return sentinel.createClient(self.params.redis, null, null);
-            } else {
-                return redis.createClient(self.params.redis);
-            }
-
-        })()
-    };
-
-    self.context.redis.on("error", function (err) {
-        debug("Redis.error " + err);
-    });
-
-    self.context.redis.on("connect", function () {
-        debug("Redis.connect ");
-    });
-
-
-    self.Keys = new Keys(self.context);
-    self.ready = false;
-
-    const init = ()=> {
-        self.loadKeys()
-            .then(()=> {
-                debug("Keys loaded");
-                self.ready = true;
+    return new Promise((resolve, reject) => {
+      if (this.ready) {
+        if (req.headers.tokenservice && req.headers.tokenservice === 'login') {
+          debug('login');
+          this.login(req.headers.apikey || '', req.headers.secret || '', res)
+            .then((secretToken) => {
+              res.set('secret-token', secretToken);
+              this.send(res, 'Login OK');
             })
-            .catch((err)=> {
-                debug("Reject Starting: " + err);
-                self.params.startupMessage = "AUTH Error: starting faild.";
+            .catch((err) => {
+              debug('catch KLKTR43: ', err.toString());
+              return this.sendError(res, err);
             });
-    }//end init
-
-
-    self.interval = setInterval(()=> {
-        self.loadKeys()
-            .catch(()=> {
-                self.ready = false;
+        } else {
+          this.check(req, res)
+            .then((razon) => {
+              debug('pass, next called: ', razon);
+              next();
+              resolve();
+            })
+            .catch((err) => {
+              debug('Catch Check: ', err.toString());
+              this.sendError(res, err);
+              return reject(err);
             });
-    }, self.params.refreshKeys * 1000);
+        }// end else
+      } else {
+        return res.end(this.params.startupMessage);
+      }// end else
+    });
+  };
+  return this.run(params);
+}
 
-    init();
+require('./prototypes')(authtoken);
 
-    return this.mws;
+
+authtoken.prototype.run = function run(params) {
+  debug('run called: ', params);
+  this.params = Object.assign({}, {
+    mongodb: 'authtoken',
+    startupMessage: 'Waiting for AUTH Service...',
+    redis: '',
+    refreshKeys: 60,
+    base: '/',
+    excludes: [],
+    forcelogin: false,
+  }, params);
+
+  this.collections = params.collections || ['tokens', 'keys'];
+
+  this.context = {
+    mongodb: mongojs(this.params.mongodb, this.collections),
+    redis: (() => {
+      if (Object.prototype.toString.call(this.params.redis) === '[object Array]') {
+        return sentinel.createClient(this.params.redis, null, null);
+      }
+      return redis.createClient(this.params.redis);
+    })(),
+  };
+
+  this.context.redis.on('error', err => debug('Redis.error: ', err));
+  this.context.redis.on('connect', () => debug('Redis.connect '));
+
+
+  this.Keys = new Keys(this.context);
+  this.ready = false;
+
+  const init = () => {
+    this.loadKeys()
+      .then(() => {
+        debug('Keys loaded');
+        this.ready = true;
+      })
+      .catch((err) => {
+        debug('Reject Starting: ', err);
+        this.params.startupMessage = 'AUTH Error: starting faild.';
+      });
+  };// end init
+
+
+  this.interval = setInterval(() => {
+    this.loadKeys()
+      .catch(() => {
+        this.ready = false;
+      });
+  }, this.params.refreshKeys * 1000);
+
+  init();
+
+  return this.mws;
 };
 
 
-authtoken.prototype.sendError = (res, err)=> {
-    res.end(JSON.stringify({Error: true, msg: err, timestamp: new Date().getTime()}));
-};
+authtoken.prototype.sendError = (res, err) => res.end(JSON.stringify({ Error: true,
+  msg: err,
+  timestamp: new Date().getTime(),
+}));
 
-authtoken.prototype.send = (res, msg)=> {
-    res.end(JSON.stringify({Error: null, msg: msg, timestamp: new Date().getTime()}));
-};
+authtoken.prototype.send = (res, msg) => res.end(JSON.stringify({ Error: null,
+  msg,
+  timestamp: new Date().getTime(),
+}));
 
-authtoken.prototype.generateSecretToken = ()=> {
-    return crypto.randomBytes(20).toString('hex') + '-' + shortid.generate();
-};
+authtoken.prototype.generateSecretToken = () => `${crypto.randomBytes(20).toString('hex')}-${shortid.generate()}`;
 
-
-module.exports.express = authtoken;
-
-/**
- * La villada de Hapi, the most ugly framework :p
- * @type {{register: Function}}
- */
-module.exports.hapi = {
-    register: function (server, options, next) {
-
-        var authtoken = new module.exports.express("hapi");
-
-        server.ext({
-            type: 'onRequest',
-            method: function (request, reply) {
-                var response = null;
-
-                var emul = {
-                    "set": function (k, v) {
-                        debug("emul.set called: " + k + " " + v);
-                        if (!response) response = reply().header(k, v).hold();
-                        else {
-                            response.headers[k] = v;
-                        }
-                    },
-                    "end": (buff)=> {
-                        debug("emul.end called: " + buff);
-                        if (!response) response = reply().header("authtoken", "error").hold();
-                        response.source = buff;
-                        response.send();
-                    }
-                };
-
-
-                authtoken(request, emul, reply.continue)
-                    .then((razon)=> {
-                        debug("final hapy: " + razon)
-                        reply.continue();
-                    });
-
-            }//end method
-        });
-
-        next();
-    }//end register
-};
-
-module.exports.hapi.register.attributes = {
-    name: "AUTHToken"
-};
+module.exports = authtoken;

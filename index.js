@@ -1,6 +1,5 @@
 const debug = require('./fdebug')('authtoken:main');
 const redis = require('redis');
-const config = require('config');
 const shortid = require('shortid');
 const crypto = require('crypto');
 const sentinel = require('redis-sentinel');
@@ -15,36 +14,32 @@ function authtoken(params = {}) {
   this.mws = (req, res, next) => {
     debug('do request: ', req.path);
 
-    return new Promise((resolve, reject) => {
-      if (this.ready) {
-        if (req.headers.tokenservice && req.headers.tokenservice === 'login') {
-          debug('login');
-          this.login(req.headers.apikey || '', req.headers.secret || '', res)
-            .then((secretToken) => {
-              res.set('secret-token', secretToken);
-              this.send(res, 'Login OK');
-            })
-            .catch((err) => {
-              debug('catch KLKTR43: ', err.toString());
-              return this.sendError(res, err);
-            });
-        } else {
-          this.check(req, res)
-            .then((razon) => {
-              debug('pass, next called: ', razon);
-              next();
-              resolve();
-            })
-            .catch((err) => {
-              debug('Catch Check: ', err.toString());
-              this.sendError(res, err);
-              return reject(err);
-            });
-        }// end else
-      } else {
-        return res.end(this.params.startupMessage);
-      }// end else
-    });
+    if (this.ready) {
+      if (req.headers.tokenservice && req.headers.tokenservice === 'login') {
+        debug('login');
+        return this.login(req.headers.apikey || '', req.headers.secret || '', res)
+          .then((secretToken) => {
+            res.set('secret-token', secretToken);
+            this.send(res, 'Login OK');
+          })
+          .catch((err) => {
+            debug('catch KLKTR43: ', err.toString());
+            return this.sendError(res, err);
+          });
+      }
+      return this.check(req, res)
+        .then((razon) => {
+          debug('pass, next called: ', razon);
+          next();
+          return true;
+        })
+        .catch((err) => {
+          debug('Catch Check: ', err.toString());
+          this.sendError(res, err);
+          return err;
+        });
+    }
+    return res.end(this.params.startupMessage);
   };
   return this.run(params);
 }
@@ -109,7 +104,7 @@ authtoken.prototype.run = function run(params) {
 };
 
 
-authtoken.prototype.sendError = (res, err) => res.end(JSON.stringify({ Error: true,
+authtoken.prototype.sendError = (res, err) => res.status(401).end(JSON.stringify({ Error: true,
   msg: err,
   timestamp: new Date().getTime(),
 }));

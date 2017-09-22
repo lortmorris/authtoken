@@ -1,6 +1,6 @@
 {
   "name": "authtoken",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "Implement AUTH TOKEN in you REST API",
   "main": "index.js",
   "directories": {
@@ -27,7 +27,6 @@
   "homepage": "https://github.com/lortmorris/apitoken#readme",
   "dependencies": {
     "babel-eslint": "^7.2.3",
-    "config": "^1.19.0",
     "debug": "^2.2.0",
     "eslint": "^4.6.1",
     "eslint-config-airbnb": "^15.1.0",

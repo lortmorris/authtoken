@@ -46,12 +46,11 @@ module.exports = function check(req) {
     let trq = null;
     let limit = null;
 
-    this.hget(key, 'trq')
+    return this.hget(key, 'trq')
       .then(($trq) => {
-        if ($trq === null) return reject('invalid API-Key');
+        if ($trq === null || isNaN($trq)) return reject('invalid API-Key');
         trq = $trq;
         debug('getting: ', JSON.stringify($trq));
-        trq = $trq;
         return this.hget(key, 'limit');
       })
       .then(($limit) => {

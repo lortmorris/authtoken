@@ -1,6 +1,6 @@
 {
   "name": "authtoken",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "Implement AUTH TOKEN in you REST API",
   "main": "index.js",
   "directories": {
@@ -26,16 +26,18 @@
   },
   "homepage": "https://github.com/lortmorris/apitoken#readme",
   "dependencies": {
-    "babel-eslint": "^7.2.3",
     "debug": "^2.2.0",
-    "eslint": "^4.6.1",
-    "eslint-config-airbnb": "^15.1.0",
-    "eslint-plugin-import": "^2.7.0",
-    "eslint-plugin-jsx-a11y": "^6.0.2",
-    "eslint-plugin-react": "^7.3.0",
     "mongojs": "^2.4.0",
     "redis": "^2.5.3",
     "redis-sentinel": "^0.3.3",
     "shortid": "^2.2.6"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.1",
+    "eslint": "^4.16.0",
+    "eslint-config-airbnb": "^16.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-jsx-a11y": "^6.0.3",
+    "eslint-plugin-react": "^7.5.1"
   }
 }

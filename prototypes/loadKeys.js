@@ -13,8 +13,8 @@ module.exports = function loadKeys() {
         let total = keys.length;
         keys.forEach(a => ((aa) => {
           this.hset(aa.apikey, 'secret', a.secret)
-            .then(() => this.hset(aa.apikey, 'ratelimit', aa.ratelimit))
-            .then(() => this.hset(`_private-${aa.apikey}`, 'limit', aa.ratelimit))
+            .then(() => this.hset(aa.apikey, 'ratelimit', aa.ratelimit || 10000000))
+            .then(() => this.hset(`_private-${aa.apikey}`, 'limit', aa.ratelimit || 10000000))
             .then(() => this.expire(`_private-${aa.apikey}`, 60 * 60))
             .then(() => this.hset(`_private-${aa.apikey}`, 'trq', 0))
             .then(() => {

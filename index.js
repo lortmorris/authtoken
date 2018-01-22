@@ -1,4 +1,4 @@
-const debug = require('./fdebug')('authtoken:main');
+const debug = require('debug')('authtoken:main');
 const redis = require('redis');
 const shortid = require('shortid');
 const crypto = require('crypto');

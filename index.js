@@ -104,12 +104,14 @@ authtoken.prototype.run = function run(params) {
 };
 
 
-authtoken.prototype.sendError = (res, err) => res.status(401).end(JSON.stringify({ Error: true,
+authtoken.prototype.sendError = (res, err) => res.status(401).end(JSON.stringify({
+  Error: true,
   msg: err,
   timestamp: new Date().getTime(),
 }));
 
-authtoken.prototype.send = (res, msg) => res.end(JSON.stringify({ Error: null,
+authtoken.prototype.send = (res, msg) => res.end(JSON.stringify({
+  Error: null,
   msg,
   timestamp: new Date().getTime(),
 }));

@@ -11,7 +11,7 @@ module.exports = function login(apikey, secret) {
 
   return new Promise((resolve, reject) => {
     this.context.redis.hget(apikey, 'secret', (a, b) => {
-      if (a) return reject('Bad API Key');
+      if (a) return reject(new Error('Bad API Key'));
       if (b === secret) {
         const st = this.generateSecretToken();
         this.context.redis.hset(st, 'trq', 0, () => {
@@ -22,7 +22,7 @@ module.exports = function login(apikey, secret) {
             });// end set limit
           }); // end get ratelimit
         });// end set trq
-      } else return reject('Bad Secret Token');
+      } else return reject(new Error('Bad Secret Token'));
       return null;
     });
   });

@@ -1,43 +1,38 @@
-"use strict";
+const http = require('http');
+const express = require('../examples/express');
 
-var express = require("../examples/express");
-var http = require("http");
-
-
-function request (headers, url){
-
-    let params = {
-        protocol: 'http:',
-        host: '127.0.0.1',
-        port: 8000,
-        method: 'GET',
-        path: url || '/',
-        headers: headers
-    };
+function request(headers, url) {
+  const params = {
+    protocol: 'http:',
+    host: '127.0.0.1',
+    port: 8000,
+    method: 'GET',
+    path: url || '/',
+    headers,
+  };
 
 
-    let body = "";
+  const body = '';
 
-    return new Promise((resolve, reject)=>{
-        try{
-            let req = http.request(params, (res)=>{
-                res.on('data', (s)=>{
-                    body=body+s.toString();
-                });
+  return new Promise((resolve, reject) => {
+    try {
+      const req = http.request(params, (res) => {
+        res.on('data', (s) => {
+          body = body + s.toString();
+        });
 
-                res.on('end', () => {
-                    resolve(body);
-                });
-            });
+        res.on('end', () => {
+          resolve(body);
+        });
+      });
 
-
-
-            req.on('error', (err)=>{   reject(err.toString()); });
-            req.end();
-        }catch(e){  reject(e.toString()); }
-
-    });
-};
+      req.on('error', (err) => { reject(err.toString()); });
+      req.end();
+    } catch (e) {
+      reject(e.toString());
+    }
+  });
+}
 
 describe("testing auth token", function(){
 
@@ -88,4 +83,3 @@ describe("testing auth token", function(){
 
 
 });
-

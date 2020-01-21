@@ -27,11 +27,11 @@ module.exports = function check(req) {
     }
 
     if (this.params.forcelogin && !req.headers['secret-token']) {
-      return reject('secret-token is required');
+      return reject(new Error('secret-token is required'));
     }
 
     if (this.params.forcelogin === false && !req.headers.apikey) {
-      return reject('apikey is required');
+      return reject(new Error('apikey is required'));
     }
 
     if (this.params.forcelogin) {
@@ -48,7 +48,7 @@ module.exports = function check(req) {
 
     return this.hget(key, 'trq')
       .then(($trq) => {
-        if ($trq === null || isNaN($trq)) return reject('invalid API-Key');
+        if ($trq === null || isNaN($trq)) return reject(new Error('invalid API-Key'));
         trq = $trq;
         debug('getting: ', JSON.stringify($trq));
         return this.hget(key, 'limit');
@@ -57,7 +57,7 @@ module.exports = function check(req) {
         limit = $limit == null ? 0 : limit;
         trq = parseInt(trq, 10);
         trq += 1;
-        if (trq === parseInt(limit, 10)) return reject('Too many request');
+        if (trq === parseInt(limit, 10)) return reject(new Error('Too many request'));
         return this.hset(key, 'trq', trq);
       })
       .then(() => resolve())
